@@ -3,6 +3,23 @@
 
 const char kWindowTitle[] = "LC1C_19_タイラタクヤ_タイトル";
 
+// 二頂演算子
+Vector3 operator+(const Vector3& v1, const Vector3& v2) { return AddVector(v1, v2); }
+Vector3 operator-(const Vector3& v1, const Vector3& v2) { return SubtractVector(v1, v2); }
+Vector3 operator*(float s, const Vector3& v) { return MultiplyFloatVector(s, v); }
+Vector3 operator+(const Vector3& v, float s) { return s * v; }
+Vector3 operator/(const Vector3& v, float s) { return MultiplyFloatVector(1.0f / s, v); }
+Matrix4x4 operator+(const Matrix4x4& m1, const Matrix4x4& m2) { return Add(m1, m2); }
+Matrix4x4 operator-(const Matrix4x4& m1, const Matrix4x4& m2) { return Subtract(m1, m2); }
+Matrix4x4 operator*(const Matrix4x4& m1, const Matrix4x4& m2) { return Multiply(m1, m2); }
+// 単頂演算子
+Vector3 operator-(const Vector3& v) { return{ -v.x, -v.y, -v.z }; }
+Vector3 operator+(const Vector3& v) { return v; }
+// 複合代入演算子
+Vector3& operator*=(Vector3& lhs, float s) { lhs.x *= s; lhs.y *= s; lhs.z *= s; return lhs; }
+Vector3& operator-=(Vector3& lhs, float s) { lhs.x -= s; lhs.y -= s; lhs.z -= s; return lhs; }
+Vector3& operator+=(Vector3& lhs, float s) { lhs.x += s; lhs.y += s; lhs.z += s; return lhs; }
+Vector3& operator/=(Vector3& lhs, float s) { lhs.x /= s; lhs.y /= s; lhs.z /= s; return lhs; }
 
 
 // Windowsアプリでのエントリーポイント(main関数)
@@ -22,29 +39,16 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	const int kWindowWidth = 1280;
 	const int kWindowHeight = 720;
 
-
-	Vector3 scales[3] = {
-		{1.0f, 1.0f, 1.0f},
-		{1.0f, 1.0f, 1.0f},
-		{1.0f, 1.0f, 1.0f}
-	};
-
-	Vector3 rotates[3] = {
-		{0.0f, 0.0f, -6.8f},
-		{0.0f, 0.0f, -1.4f},
-		{0.0f, 0.0f, 0.0f},
-	};
-
-	Vector3 translates[3] = {
-		{0.2f, 1.0f, 0.0f},
-		{0.4f, 0.0f, 0.0f},
-		{0.3f, 0.0f, 0.0f},
-	};
-
-	Matrix4x4 localMatrix[3] = {};
-	Matrix4x4 worldMatrix[3] = {};
-
-	Vector3 screenLine[3] = {};
+	Vector3 a{ 0.2f, 1.0f, 0.0f };
+	Vector3 b{ 2.4f, 3.1f, 1.2f };
+	Vector3 c = a + b;
+	Vector3 d = a - b;
+	Vector3 e = 2.4f * a;
+	Vector3 rotate{ 0.4f, 1.43f, -0.8f };
+	Matrix4x4 rotateXMatrix = MakeRotateXMatrix(rotate.x);
+	Matrix4x4 rotateYMatrix = MakeRotateYMatrix(rotate.y);
+	Matrix4x4 rotateZMatrix = MakeRotateZMatrix(rotate.z);
+	Matrix4x4 rotateMatrix = rotateXMatrix * rotateYMatrix * rotateZMatrix;
 
 	// ウィンドウの×ボタンが押されるまでループ
 	while (Novice::ProcessMessage() == 0) {
@@ -75,19 +79,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 		//=================================================================================================
 
-		for (int i = 0; i < 3; i++) {
-			localMatrix[i] = MakeAffineMatrix(scales[i], rotates[i], translates[i]);
-		}
-
-		worldMatrix[0] = localMatrix[0];
-		worldMatrix[1] = Multiply(localMatrix[1], localMatrix[0]);
-		worldMatrix[2] = Multiply(Multiply(localMatrix[2], localMatrix[1]), localMatrix[0]);
-
-		// 線の座標をスクリーン座標に変換
-		for (int i = 0; i < 3; i++) {
-			screenLine[i] = Transform(Transform(Vector3{ worldMatrix[i].m[3][0], worldMatrix[i].m[3][1], worldMatrix[i].m[3][2] }, viewProjectionMatrix), viewportMatrix);
-		}
-
+		
 		///
 		/// ↑更新処理ここまで
 		///
@@ -100,36 +92,19 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		// グリッド線の描画
 		DrawGrid(viewProjectionMatrix, viewportMatrix);
 
-		// 線の描画
-		Novice::DrawLine(int(screenLine[0].x), int(screenLine[0].y), int(screenLine[1].x), int(screenLine[1].y), WHITE);
-		Novice::DrawLine(int(screenLine[1].x), int(screenLine[1].y), int(screenLine[2].x), int(screenLine[2].y), WHITE);
-
-		// 肩
-		DrawSphere(Sphere{ Vector3{worldMatrix[0].m[3][0], worldMatrix[0].m[3][1], worldMatrix[0].m[3][2]}, 0.05f }, viewProjectionMatrix, viewportMatrix, RED);
-		// 肘
-		DrawSphere(Sphere{ Vector3{worldMatrix[1].m[3][0], worldMatrix[1].m[3][1], worldMatrix[1].m[3][2]}, 0.05f }, viewProjectionMatrix, viewportMatrix, GREEN);
-		// 手
-		DrawSphere(Sphere{ Vector3{worldMatrix[2].m[3][0], worldMatrix[2].m[3][1], worldMatrix[2].m[3][2]}, 0.05f }, viewProjectionMatrix, viewportMatrix, BLUE);
-
-
+		
 		// ImGui
 		ImGui::Begin("Window");
-		if (ImGui::CollapsingHeader("Camera")) {
-			ImGui::DragFloat3("cameraScale", &cameraScale.x, 0.01f);
-			ImGui::DragFloat3("cameraRotate", &cameraRotate.x, 0.01f);
-			ImGui::DragFloat3("cameraTranslate", &cameraTranslate.x, 0.01f);
-		}
-		if (ImGui::CollapsingHeader("Sphere")) {
-			ImGui::DragFloat3("translates[0]", &translates[0].x, 0.01f);
-			ImGui::DragFloat3("rotates[0]", &rotates[0].x, 0.01f);
-			ImGui::DragFloat3("scales[0]", &scales[0].x, 0.01f);
-			ImGui::DragFloat3("translates[1]", &translates[1].x, 0.01f);
-			ImGui::DragFloat3("rotates[1]", &rotates[1].x, 0.01f);
-			ImGui::DragFloat3("scales[1]", &scales[1].x, 0.01f);
-			ImGui::DragFloat3("translates[2]", &translates[2].x, 0.01f);
-			ImGui::DragFloat3("rotates[2]", &rotates[2].x, 0.01f);
-			ImGui::DragFloat3("scales[2]", &scales[2].x, 0.01f);
-		}
+		ImGui::Text("c:%f, %f, %f", c.x, c.y, c.z);
+		ImGui::Text("d:%f, %f, %f", d.x, d.y, d.z);
+		ImGui::Text("e:%f, %f, %f", e.x, e.y, e.z);
+		ImGui::Text(
+		"matrix:\n%f, %f, %f, %f\n%f, %f, %f, %f\n%f, %f, %f, %f\n%f, %f, %f, %f\n",
+		rotateMatrix.m[0][0], rotateMatrix.m[0][1], rotateMatrix.m[0][2], rotateMatrix.m[0][3],
+		rotateMatrix.m[1][0], rotateMatrix.m[1][1], rotateMatrix.m[1][2], rotateMatrix.m[1][3],
+		rotateMatrix.m[2][0], rotateMatrix.m[2][1], rotateMatrix.m[2][2], rotateMatrix.m[2][3],
+		rotateMatrix.m[3][0], rotateMatrix.m[3][1], rotateMatrix.m[3][2], rotateMatrix.m[3][3]
+		);
 		ImGui::End();
 
 		///

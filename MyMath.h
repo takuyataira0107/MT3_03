@@ -78,7 +78,13 @@ Vector3 SubtractVector(const Vector3& v1, const Vector3& v2) {
 //=================================================================================================
 
 //=================================================================================================
-Vector3 MultiplyVector(const float& k, const Vector3& v) {
+Vector3 MultiplyVector(const Vector3& v1, const Vector3& v2) {
+	Vector3 result;
+	result = { v1.x * v2.x, v1.y * v2.y, v1.z * v2.z };
+	return result;
+}
+
+Vector3 MultiplyFloatVector(const float& k, const Vector3& v) {
 	Vector3 result;
 	result = { k * v.x, k * v.y, k * v.z };
 	return result;
@@ -428,7 +434,7 @@ void DrawLineSegment(const Segment& segment, const Matrix4x4& viewProjectionMatr
 
 //========================================  平面の描画  ============================================
 void DrawPlane(const Plane& plane, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
-	Vector3 center = MultiplyVector(plane.distance, plane.normal);  // 1
+	Vector3 center = MultiplyFloatVector(plane.distance, plane.normal);  // 1
 	Vector3 perpendiculars[4];
 	perpendiculars[0] = Normalize(Perpendicular(plane.normal));  // 2
 	perpendiculars[1] = { -perpendiculars[0].x, -perpendiculars[0].y, -perpendiculars[0].z };  // 3
@@ -437,7 +443,7 @@ void DrawPlane(const Plane& plane, const Matrix4x4& viewProjectionMatrix, const 
 	// 6
 	Vector3 points[4];
 	for (uint32_t index = 0; index < 4; ++index) {
-		Vector3 extend = MultiplyVector(2.0f, perpendiculars[index]);
+		Vector3 extend = MultiplyFloatVector(2.0f, perpendiculars[index]);
 		Vector3 point = AddVector(center, extend);
 		points[index] = Transform(Transform(point, viewProjectionMatrix), viewportMatrix);
 	}
