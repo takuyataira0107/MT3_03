@@ -22,12 +22,29 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	const int kWindowWidth = 1280;
 	const int kWindowHeight = 720;
 
-	// 各点
-	Vector3 controlPoint[3] = {
-		{-0.8f, 0.58f, 1.0f},
-		{1.76f, 1.0f, -0.3f},
-		{0.94f, -0.7f, 2.3f},
+
+	Vector3 scales[3] = {
+		{1.0f, 1.0f, 1.0f},
+		{1.0f, 1.0f, 1.0f},
+		{1.0f, 1.0f, 1.0f}
 	};
+
+	Vector3 rotates[3] = {
+		{0.0f, 0.0f, -6.8f},
+		{0.0f, 0.0f, -1.4f},
+		{0.0f, 0.0f, 0.0f},
+	};
+
+	Vector3 translates[3] = {
+		{0.2f, 1.0f, 0.0f},
+		{0.4f, 0.0f, 0.0f},
+		{0.3f, 0.0f, 0.0f},
+	};
+
+	Matrix4x4 localMatrix[3] = {};
+	Matrix4x4 worldMatrix[3] = {};
+
+	Vector3 screenLine[3] = {};
 
 	// ウィンドウの×ボタンが押されるまでループ
 	while (Novice::ProcessMessage() == 0) {
@@ -58,6 +75,18 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 		//=================================================================================================
 
+		for (int i = 0; i < 3; i++) {
+			localMatrix[i] = MakeAffineMatrix(scales[i], rotates[i], translates[i]);
+		}
+
+		worldMatrix[0] = localMatrix[0];
+		worldMatrix[1] = Multiply(localMatrix[1], localMatrix[0]);
+		worldMatrix[2] = Multiply(Multiply(localMatrix[2], localMatrix[1]), localMatrix[0]);
+
+		// 線の座標をスクリーン座標に変換
+		for (int i = 0; i < 3; i++) {
+			screenLine[i] = Transform(Transform(Vector3{ worldMatrix[i].m[3][0], worldMatrix[i].m[3][1], worldMatrix[i].m[3][2] }, viewProjectionMatrix), viewportMatrix);
+		}
 
 		///
 		/// ↑更新処理ここまで
@@ -71,26 +100,35 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		// グリッド線の描画
 		DrawGrid(viewProjectionMatrix, viewportMatrix);
 
-		// ベジェ曲線の描画
-		DrawBezier(controlPoint[0], controlPoint[1], controlPoint[2], viewProjectionMatrix, viewportMatrix, BLUE);
+		// 線の描画
+		Novice::DrawLine(int(screenLine[0].x), int(screenLine[0].y), int(screenLine[1].x), int(screenLine[1].y), WHITE);
+		Novice::DrawLine(int(screenLine[1].x), int(screenLine[1].y), int(screenLine[2].x), int(screenLine[2].y), WHITE);
 
-		// ベジェ曲線の各点の描画
-		DrawSphere(Sphere{ controlPoint[0], 0.01f }, viewProjectionMatrix, viewportMatrix, BLACK);
-		DrawSphere(Sphere{ controlPoint[1], 0.01f }, viewProjectionMatrix, viewportMatrix, BLACK);
-		DrawSphere(Sphere{ controlPoint[2], 0.01f }, viewProjectionMatrix, viewportMatrix, BLACK);
+		// 肩
+		DrawSphere(Sphere{ Vector3{worldMatrix[0].m[3][0], worldMatrix[0].m[3][1], worldMatrix[0].m[3][2]}, 0.05f }, viewProjectionMatrix, viewportMatrix, RED);
+		// 肘
+		DrawSphere(Sphere{ Vector3{worldMatrix[1].m[3][0], worldMatrix[1].m[3][1], worldMatrix[1].m[3][2]}, 0.05f }, viewProjectionMatrix, viewportMatrix, GREEN);
+		// 手
+		DrawSphere(Sphere{ Vector3{worldMatrix[2].m[3][0], worldMatrix[2].m[3][1], worldMatrix[2].m[3][2]}, 0.05f }, viewProjectionMatrix, viewportMatrix, BLUE);
 
 
 		// ImGui
 		ImGui::Begin("Window");
-		if (ImGui::CollapsingHeader("camera")) {
+		if (ImGui::CollapsingHeader("Camera")) {
 			ImGui::DragFloat3("cameraScale", &cameraScale.x, 0.01f);
 			ImGui::DragFloat3("cameraRotate", &cameraRotate.x, 0.01f);
 			ImGui::DragFloat3("cameraTranslate", &cameraTranslate.x, 0.01f);
 		}
-		if (ImGui::CollapsingHeader("Bezier")) {
-			ImGui::DragFloat3("controlPoint[0]", &controlPoint[0].x, 0.01f);
-			ImGui::DragFloat3("controlPoint[1]", &controlPoint[1].x, 0.01f);
-			ImGui::DragFloat3("controlPoint[2]", &controlPoint[2].x, 0.01f);
+		if (ImGui::CollapsingHeader("Sphere")) {
+			ImGui::DragFloat3("translates[0]", &translates[0].x, 0.01f);
+			ImGui::DragFloat3("rotates[0]", &rotates[0].x, 0.01f);
+			ImGui::DragFloat3("scales[0]", &scales[0].x, 0.01f);
+			ImGui::DragFloat3("translates[1]", &translates[1].x, 0.01f);
+			ImGui::DragFloat3("rotates[1]", &rotates[1].x, 0.01f);
+			ImGui::DragFloat3("scales[1]", &scales[1].x, 0.01f);
+			ImGui::DragFloat3("translates[2]", &translates[2].x, 0.01f);
+			ImGui::DragFloat3("rotates[2]", &rotates[2].x, 0.01f);
+			ImGui::DragFloat3("scales[2]", &scales[2].x, 0.01f);
 		}
 		ImGui::End();
 
